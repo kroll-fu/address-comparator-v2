@@ -13,7 +13,6 @@ export default function FilePreview({ fileState, onRemove }: FilePreviewProps) {
       borderRadius: '8px',
       padding: '16px',
       backgroundColor: 'var(--es-white)',
-      overflow: 'hidden',
     }}>
       {/* Header row */}
       <div style={{
@@ -55,7 +54,6 @@ export default function FilePreview({ fileState, onRemove }: FilePreviewProps) {
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{
-            width: '100%',
             borderCollapse: 'collapse',
             fontSize: '12px',
           }}>
