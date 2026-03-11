@@ -14,6 +14,7 @@ export default function MatchingStep() {
     thresholds,
     isMatching,
     matchError,
+    matchProgress,
     runMatch,
     setThresholds,
   } = useWorkflow();
@@ -54,6 +55,27 @@ export default function MatchingStep() {
         >
           {isMatching ? 'Running match...' : 'Run Match'}
         </button>
+        {isMatching && matchProgress && (
+          <div style={{ marginTop: '16px', maxWidth: '400px', marginLeft: 'auto', marginRight: 'auto' }}>
+            <div style={{
+              backgroundColor: 'var(--es-gray100)',
+              borderRadius: '8px',
+              height: '12px',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                backgroundColor: 'var(--es-blue)',
+                height: '100%',
+                width: `${Math.round((matchProgress.completed / matchProgress.total) * 100)}%`,
+                borderRadius: '8px',
+                transition: 'width 0.2s ease',
+              }} />
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--es-gray400)', marginTop: '6px' }}>
+              {matchProgress.completed.toLocaleString()} / {matchProgress.total.toLocaleString()} records processed ({Math.round((matchProgress.completed / matchProgress.total) * 100)}%)
+            </div>
+          </div>
+        )}
         {matchError && (
           <div style={{
             marginTop: '12px',

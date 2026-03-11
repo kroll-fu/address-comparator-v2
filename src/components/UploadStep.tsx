@@ -47,7 +47,7 @@ export default function UploadStep() {
         gap: '24px',
       }}>
         {/* EnergySage Leads column */}
-        <div>
+        <div style={{ minWidth: 0 }}>
           {esFile ? (
             <FilePreview fileState={esFile} onRemove={handleRemoveEs} />
           ) : (
@@ -91,7 +91,7 @@ export default function UploadStep() {
         </div>
 
         {/* LightReach Confirms column */}
-        <div>
+        <div style={{ minWidth: 0 }}>
           {lrFile ? (
             <FilePreview fileState={lrFile} onRemove={handleRemoveLr} />
           ) : (

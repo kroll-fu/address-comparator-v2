@@ -13,6 +13,7 @@ export default function FilePreview({ fileState, onRemove }: FilePreviewProps) {
       borderRadius: '8px',
       padding: '16px',
       backgroundColor: 'var(--es-white)',
+      overflow: 'hidden',
     }}>
       {/* Header row */}
       <div style={{

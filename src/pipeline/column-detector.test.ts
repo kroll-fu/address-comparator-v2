@@ -62,6 +62,40 @@ describe('detectColumns', () => {
     expect(mapping.installer).toBeUndefined();
   });
 
+  it('detects verbose LightReach headers', () => {
+    const headers = [
+      'Finco Account ID',
+      'Primary Applicant Address One',
+      'Primary Applicant City',
+      'Primary Applicant State',
+      'Primary Applicant Zip',
+      'Primary Applicant First Name',
+      'Primary Applicant Last Name',
+      'Primary Applicant Email',
+      'Licensed Organization Name',
+      'Organization Name',
+      'Sales Member Email Address',
+      'Account Created At Date',
+      'Notice to Proceed Approved At Date',
+      'Install Approved At Date',
+      'System Activation Approved At Date',
+      'Primary Applicant Address Two',
+    ];
+    const mapping = detectColumns(headers);
+
+    expect(mapping.firstName).toBe('Primary Applicant First Name');
+    expect(mapping.lastName).toBe('Primary Applicant Last Name');
+    expect(mapping.street).toBe('Primary Applicant Address One');
+    expect(mapping.city).toBe('Primary Applicant City');
+    expect(mapping.state).toBe('Primary Applicant State');
+    expect(mapping.zip).toBe('Primary Applicant Zip');
+    expect(mapping.email).toBe('Primary Applicant Email');
+    expect(mapping.customerId).toBe('Finco Account ID');
+    expect(mapping.installer).toBe('Licensed Organization Name');
+    expect(mapping.company).toBe('Organization Name');
+    expect(mapping.fullName).toBeUndefined(); // firstName+lastName preferred
+  });
+
   it('handles headers with no matches', () => {
     const headers = ['Column1', 'Column2', 'Column3'];
     const mapping = detectColumns(headers);

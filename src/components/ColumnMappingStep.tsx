@@ -31,18 +31,22 @@ export default function ColumnMappingStep() {
         gap: '24px',
         marginBottom: '20px',
       }}>
-        <ColumnMappingPanel
-          label="EnergySage Leads"
-          mapping={esColumnMapping}
-          headers={esFile.headers}
-          onMappingChange={updateEsMapping}
-        />
-        <ColumnMappingPanel
-          label="LightReach Confirms"
-          mapping={lrColumnMapping}
-          headers={lrFile.headers}
-          onMappingChange={updateLrMapping}
-        />
+        <div style={{ minWidth: 0 }}>
+          <ColumnMappingPanel
+            label="EnergySage Leads"
+            mapping={esColumnMapping}
+            headers={esFile.headers}
+            onMappingChange={updateEsMapping}
+          />
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <ColumnMappingPanel
+            label="LightReach Confirms"
+            mapping={lrColumnMapping}
+            headers={lrFile.headers}
+            onMappingChange={updateLrMapping}
+          />
+        </div>
       </div>
 
       <div style={{ textAlign: 'center' }}>
