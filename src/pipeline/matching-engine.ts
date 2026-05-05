@@ -83,6 +83,60 @@ class Top3 {
 }
 
 /**
+ * Scoring helper for the ranking loop. Computes address components in cost
+ * order and short-circuits via floor checks — returns null when the pair
+ * cannot displace the current top-3 minimum.
+ *
+ * Bit-identical to scoreRecord for any pair that is not pruned (i.e., for
+ * every pair that ends up displayed in the top 3).
+ */
+function scoreForRanking(
+  esRecord: NormalizedRecord,
+  lrRecord: NormalizedRecord,
+  floor: number,
+): MatchScores | null {
+  const stateMatch = esRecord.state === lrRecord.state;
+  const zipMatch = esRecord.zip === lrRecord.zip;
+  const stateWeight = stateMatch ? 0.15 : 0;
+  const zipWeight = zipMatch ? 0.10 : 0;
+
+  const streetScore = jaroWinkler(esRecord.street, lrRecord.street);
+
+  // Floor check A: assume cityScore = 1.0 (max possible)
+  const upperBoundA = streetScore * 0.50 + 1.0 * 0.25 + stateWeight + zipWeight;
+  if (upperBoundA < floor) return null;
+
+  const cityScore = jaroWinkler(esRecord.city, lrRecord.city);
+
+  const addressScore = streetScore * 0.50 + cityScore * 0.25 + stateWeight + zipWeight;
+
+  // Floor check B: exact addressScore
+  if (addressScore < floor) return null;
+
+  const nameScore = jaroWinkler(esRecord.fullName, lrRecord.fullName);
+
+  const esEmail = esRecord.email ?? '';
+  const lrEmail = lrRecord.email ?? '';
+  const emailScore = (esEmail && lrEmail && esEmail === lrEmail) ? 1.0 : 0;
+
+  const installerScore =
+    (esRecord.installer && lrRecord.installer)
+      ? jaroWinkler(esRecord.installer.toLowerCase(), lrRecord.installer.toLowerCase())
+      : 0;
+
+  return {
+    addressScore,
+    nameScore,
+    emailScore,
+    installerScore,
+    streetScore,
+    cityScore,
+    stateMatch,
+    zipMatch,
+  };
+}
+
+/**
  * Run matching: for each LR record, score against ALL ES records,
  * keep top 3 ranked by addressScore descending.
  */
@@ -95,8 +149,10 @@ export function runMatching(
   for (const lrRecord of lrRecords) {
     const top3 = new Top3();
     for (const esRecord of esRecords) {
-      const scores = scoreRecord(esRecord, lrRecord);
-      top3.tryInsert({ esRecord, scores });
+      const scores = scoreForRanking(esRecord, lrRecord, top3.minScore());
+      if (scores !== null) {
+        top3.tryInsert({ esRecord, scores });
+      }
     }
     results.push({ lrRecord, topMatches: top3.toArray() });
   }
