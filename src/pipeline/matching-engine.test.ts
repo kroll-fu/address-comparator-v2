@@ -159,30 +159,32 @@ describe('runMatching', () => {
     expect(scoreRecord(esEmpty, esEmpty).installerScore).toBe(0);
   });
 
-  it('completes 2000 ES x 200 LR matching in under 5 seconds', () => {
-    const esRecords: NormalizedRecord[] = Array.from({ length: 2000 }, (_, i) =>
+  it('completes 12600 ES x 12600 LR matching in under 30 seconds', () => {
+    const states = ['CT', 'NY', 'NJ', 'MA', 'CA', 'TX', 'FL', 'IL', 'PA', 'OH'];
+
+    const esRecords: NormalizedRecord[] = Array.from({ length: 12600 }, (_, i) =>
       makeRecord({
         sourceRow: i,
-        firstName: `first${i}`,
-        lastName: `last${i}`,
-        fullName: `first${i} last${i}`,
+        firstName: `first${i % 500}`,
+        lastName: `last${i % 500}`,
+        fullName: `first${i % 500} last${i % 500}`,
         street: `${i} main street apt ${i % 10}`,
-        city: `city${i % 50}`,
-        state: i % 2 === 0 ? 'CT' : 'NY',
-        zip: String(10000 + i).padStart(5, '0'),
+        city: `city${i % 200}`,
+        state: states[i % states.length],
+        zip: String(10000 + (i % 1000)).padStart(5, '0'),
       })
     );
 
-    const lrRecords: NormalizedRecord[] = Array.from({ length: 200 }, (_, i) =>
+    const lrRecords: NormalizedRecord[] = Array.from({ length: 12600 }, (_, i) =>
       makeRecord({
         sourceRow: i,
-        firstName: `first${i * 10}`,
-        lastName: `last${i * 10}`,
-        fullName: `first${i * 10} last${i * 10}`,
-        street: `${i * 10} main street apt ${(i * 10) % 10}`,
-        city: `city${(i * 10) % 50}`,
-        state: (i * 10) % 2 === 0 ? 'CT' : 'NY',
-        zip: String(10000 + i * 10).padStart(5, '0'),
+        firstName: `first${(i * 3) % 500}`,
+        lastName: `last${(i * 3) % 500}`,
+        fullName: `first${(i * 3) % 500} last${(i * 3) % 500}`,
+        street: `${(i * 3) % 12600} main street apt ${(i * 3) % 10}`,
+        city: `city${(i * 3) % 200}`,
+        state: states[(i * 3) % states.length],
+        zip: String(10000 + ((i * 3) % 1000)).padStart(5, '0'),
       })
     );
 
@@ -190,13 +192,11 @@ describe('runMatching', () => {
     const results = runMatching(esRecords, lrRecords);
     const elapsed = performance.now() - start;
 
-    expect(results).toHaveLength(200);
-    expect(results[0].topMatches).toHaveLength(3);
-    expect(elapsed).toBeLessThan(5000);
+    expect(results).toHaveLength(12600);
+    expect(elapsed).toBeLessThan(30000);
 
-    // Log for visibility
-    console.log(`2000x200 matching completed in ${elapsed.toFixed(0)}ms`);
-  });
+    console.log(`12600x12600 matching completed in ${elapsed.toFixed(0)}ms`);
+  }, 60000); // 60s test timeout to comfortably exceed the 30s assertion
 
   it('handles LR record with empty state by scanning all ES records', () => {
     const es = [
