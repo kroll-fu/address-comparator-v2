@@ -28,8 +28,22 @@ export function jaroWinkler(s1: string, s2: string): number {
   return Math.min(1, Math.max(0, winkler));
 }
 
+// Module-scoped workspaces shared by all calls into jaroSimilarity in this
+// module instance. Safe today because matching runs in a single web worker
+// (WorkflowContext terminates any prior worker before launching a new one)
+// and JS is single-threaded — no concurrent reentry possible. If anyone ever
+// parallelises matching across multiple workers in the same process, each
+// worker gets its own module instance and these stay isolated. But do NOT
+// invoke jaroWinkler concurrently within one execution context (e.g. from
+// async tasks sharing this module) — the workspaces will collide silently.
+const JW_MAX_LEN = 256;
+const s1WorkspaceFixed = new Uint8Array(JW_MAX_LEN);
+const s2WorkspaceFixed = new Uint8Array(JW_MAX_LEN);
+
 /**
  * Jaro similarity (the base for Jaro-Winkler).
+ * Uses module-scoped Uint8Array workspaces to avoid per-call allocations.
+ * For inputs longer than JW_MAX_LEN, allocates fresh — graceful degradation.
  */
 function jaroSimilarity(s1: string, s2: string): number {
   const s1Len = s1.length;
@@ -38,8 +52,11 @@ function jaroSimilarity(s1: string, s2: string): number {
   // Match window
   const matchWindow = Math.max(0, Math.floor(Math.max(s1Len, s2Len) / 2) - 1);
 
-  const s1Matches = new Array(s1Len).fill(false);
-  const s2Matches = new Array(s2Len).fill(false);
+  // Acquire workspaces — reuse fixed buffers when within size limit, else allocate
+  const s1Matches = s1Len <= JW_MAX_LEN ? s1WorkspaceFixed : new Uint8Array(s1Len);
+  const s2Matches = s2Len <= JW_MAX_LEN ? s2WorkspaceFixed : new Uint8Array(s2Len);
+  s1Matches.fill(0, 0, s1Len);
+  s2Matches.fill(0, 0, s2Len);
 
   let matches = 0;
   let transpositions = 0;
@@ -51,8 +68,8 @@ function jaroSimilarity(s1: string, s2: string): number {
 
     for (let j = start; j < end; j++) {
       if (s2Matches[j] || s1[i] !== s2[j]) continue;
-      s1Matches[i] = true;
-      s2Matches[j] = true;
+      s1Matches[i] = 1;
+      s2Matches[j] = 1;
       matches++;
       break;
     }
