@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { scoreRecord, runMatching } from './matching-engine';
-import type { NormalizedRecord } from '../types/matching';
+import type { NormalizedRecord, LRCustomerResult, MatchResult } from '../types/matching';
 
 function makeRecord(overrides: Partial<NormalizedRecord>): NormalizedRecord {
   return {
@@ -196,5 +196,100 @@ describe('runMatching', () => {
 
     // Log for visibility
     console.log(`2000x200 matching completed in ${elapsed.toFixed(0)}ms`);
+  });
+});
+
+// Inline byte-for-byte copy of the matching algorithm AS OF this commit.
+// Frozen — never edit. Subsequent refactors of runMatching must keep
+// the equivalence test green against this baseline.
+function runMatchingNaive(
+  esRecords: NormalizedRecord[],
+  lrRecords: NormalizedRecord[],
+): LRCustomerResult[] {
+  const results: LRCustomerResult[] = [];
+  for (const lrRecord of lrRecords) {
+    const allMatches: MatchResult[] = [];
+    for (const esRecord of esRecords) {
+      const scores = scoreRecord(esRecord, lrRecord);
+      allMatches.push({ esRecord, scores });
+    }
+    allMatches.sort((a, b) => b.scores.addressScore - a.scores.addressScore);
+    results.push({ lrRecord, topMatches: allMatches.slice(0, 3) });
+  }
+  return results;
+}
+
+function makeSyntheticDataset(): { es: NormalizedRecord[]; lr: NormalizedRecord[] } {
+  const states = ['CT', 'NY', 'NJ', 'MA', 'CA'];
+  const es: NormalizedRecord[] = [];
+  const lr: NormalizedRecord[] = [];
+
+  // 200 LR records, 500 ES records, mixed shapes
+  for (let i = 0; i < 500; i++) {
+    es.push({
+      sourceRow: i,
+      firstName: `first${i % 50}`,
+      lastName: `last${i % 50}`,
+      fullName: `first${i % 50} last${i % 50}`,
+      street: `${i} main street apt ${i % 10}`,
+      city: `city${i % 8}`,
+      state: states[i % states.length],
+      zip: String(10000 + (i % 100)).padStart(5, '0'),
+      rawName: `First${i % 50} Last${i % 50}`,
+      rawAddress: `${i} Main Street`,
+      installer: i % 3 === 0 ? 'sunrun solar' : '',
+      ...(i % 5 === 0 && { email: `user${i}@example.com` }),
+    });
+  }
+
+  for (let i = 0; i < 200; i++) {
+    // Mix:
+    //   i % 7 === 0 → empty state (forces fallback)
+    //   i % 11 === 0 → garbage state "XX" (forces fallback)
+    //   i % 13 === 0 → cross-state-only would be a strong match (boundary)
+    //   otherwise   → normal in-state distribution
+    let state: string;
+    if (i % 7 === 0) state = '';
+    else if (i % 11 === 0) state = 'XX';
+    else state = states[i % states.length];
+
+    lr.push({
+      sourceRow: i,
+      firstName: `first${i % 50}`,
+      lastName: `last${i % 50}`,
+      fullName: `first${i % 50} last${i % 50}`,
+      street: `${i} main street apt ${i % 10}`,
+      city: `city${i % 8}`,
+      state,
+      zip: String(10000 + (i % 100)).padStart(5, '0'),
+      rawName: `First${i % 50} Last${i % 50}`,
+      rawAddress: `${i} Main Street`,
+      installer: i % 4 === 0 ? 'sunrun solar inc' : '',
+      ...(i % 5 === 0 && { email: `user${i}@example.com` }),
+    });
+  }
+
+  return { es, lr };
+}
+
+describe('runMatching equivalence', () => {
+  it('produces bit-identical output to the naive baseline on the synthetic dataset', () => {
+    const { es, lr } = makeSyntheticDataset();
+    const optimized = runMatching(es, lr);
+    const naive = runMatchingNaive(es, lr);
+    expect(optimized).toEqual(naive);
+  });
+
+  it('produces bit-identical output on the boundary-case dataset (cross-state pairs at exactly 0.85)', () => {
+    // Identical street/city/zip but different state — addressScore = 0.85 exactly
+    const es: NormalizedRecord[] = [
+      { sourceRow: 0, firstName: 'a', lastName: 'b', fullName: 'a b', street: '1 main st', city: 'westport',
+        state: 'CT', zip: '06880', rawName: 'A B', rawAddress: '1 Main St', installer: '' },
+    ];
+    const lr: NormalizedRecord[] = [
+      { sourceRow: 0, firstName: 'a', lastName: 'b', fullName: 'a b', street: '1 main st', city: 'westport',
+        state: 'NY', zip: '06880', rawName: 'A B', rawAddress: '1 Main St', installer: '' },
+    ];
+    expect(runMatching(es, lr)).toEqual(runMatchingNaive(es, lr));
   });
 });
