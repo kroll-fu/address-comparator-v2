@@ -45,6 +45,44 @@ export function scoreRecord(esRecord: NormalizedRecord, lrRecord: NormalizedReco
 }
 
 /**
+ * Sorted-array collector for the top 3 matches by addressScore (desc).
+ * Faster than push + sort + slice for size 3: O(1) per insert vs O(n log n) overall.
+ */
+class Top3 {
+  private items: MatchResult[] = [];
+
+  /** Returns the lowest addressScore in the collector, or -Infinity if not yet full to 3. */
+  minScore(): number {
+    return this.items.length === 3
+      ? this.items[2].scores.addressScore
+      : -Infinity;
+  }
+
+  /** Inserts result if it belongs in the top 3; otherwise drops it. */
+  tryInsert(result: MatchResult): void {
+    const score = result.scores.addressScore;
+    if (this.items.length < 3) {
+      this.insertSorted(result);
+    } else if (score > this.items[2].scores.addressScore) {
+      this.items.pop();
+      this.insertSorted(result);
+    }
+  }
+
+  /** Returns a fresh array (caller-owned), preserving sort order. */
+  toArray(): MatchResult[] {
+    return [...this.items];
+  }
+
+  private insertSorted(result: MatchResult): void {
+    const score = result.scores.addressScore;
+    let i = 0;
+    while (i < this.items.length && this.items[i].scores.addressScore >= score) i++;
+    this.items.splice(i, 0, result);
+  }
+}
+
+/**
  * Run matching: for each LR record, score against ALL ES records,
  * keep top 3 ranked by addressScore descending.
  */
@@ -55,20 +93,12 @@ export function runMatching(
   const results: LRCustomerResult[] = [];
 
   for (const lrRecord of lrRecords) {
-    const allMatches: MatchResult[] = [];
-
+    const top3 = new Top3();
     for (const esRecord of esRecords) {
       const scores = scoreRecord(esRecord, lrRecord);
-      allMatches.push({ esRecord, scores });
+      top3.tryInsert({ esRecord, scores });
     }
-
-    // Sort by addressScore descending
-    allMatches.sort((a, b) => b.scores.addressScore - a.scores.addressScore);
-
-    // Keep top 3
-    const topMatches = allMatches.slice(0, 3);
-
-    results.push({ lrRecord, topMatches });
+    results.push({ lrRecord, topMatches: top3.toArray() });
   }
 
   return results;
