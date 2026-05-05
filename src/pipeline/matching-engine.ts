@@ -3,7 +3,7 @@ import { jaroWinkler } from './jaro-winkler';
 
 /**
  * Score a single ES record against a single LR record.
- * Returns independent address, name, email, and company scores.
+ * Returns independent address, name, email, and installer scores.
  * Address score weighted: street 50%, city 25%, state exact 15%, zip exact 10%.
  */
 export function scoreRecord(esRecord: NormalizedRecord, lrRecord: NormalizedRecord): MatchScores {
