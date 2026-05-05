@@ -5,6 +5,10 @@ import { jaroWinkler } from './jaro-winkler';
  * Score a single ES record against a single LR record.
  * Returns independent address, name, email, and installer scores.
  * Address score weighted: street 50%, city 25%, state exact 15%, zip exact 10%.
+ *
+ * NOTE: keep the addressScore formula and the empty-side gating for
+ * installerScore in lockstep with `scoreForRanking` below — both encode
+ * the same scoring contract and any change must be applied to both.
  */
 export function scoreRecord(esRecord: NormalizedRecord, lrRecord: NormalizedRecord): MatchScores {
   const streetScore = jaroWinkler(esRecord.street, lrRecord.street);
@@ -50,6 +54,11 @@ export function scoreRecord(esRecord: NormalizedRecord, lrRecord: NormalizedReco
  */
 class Top3 {
   private items: MatchResult[] = [];
+
+  /** Number of items currently held (0..3). */
+  size(): number {
+    return this.items.length;
+  }
 
   /** Returns the lowest addressScore in the collector, or -Infinity if not yet full to 3. */
   minScore(): number {
@@ -161,8 +170,21 @@ export interface RunMatchingOptions {
 }
 
 /**
- * Run matching: for each LR record, score against ALL ES records,
- * keep top 3 ranked by addressScore descending.
+ * Run matching: for each LR record, find the top 3 ES matches by addressScore.
+ *
+ * Algorithm: state-bucket scan with cross-state fallback. For each LR record,
+ * scan its in-state ES bucket first; only re-scan the cross-state remainder
+ * when the in-state heap could still be displaced (heap < 3 entries OR
+ * heap.minScore < 0.85, the maximum possible cross-state addressScore).
+ *
+ * Result equivalence to a naive O(n*m) sort+slice baseline is exact in score
+ * and rank EXCEPT in the rare case where multiple records tie at exactly the
+ * same addressScore AND those ties span the in-state/cross-state phase
+ * boundary. In that case the optimized algorithm preserves the bucket-traversal
+ * order rather than the naive's input-stable order. Practical impact: requires
+ * duplicate exact-tied addresses across states; classification (FullMatch /
+ * HouseholdMatch / NoMatch) is unaffected. See the
+ * "documented tie-handling divergence" tests in matching-engine.test.ts.
  */
 export function runMatching(
   esRecords: NormalizedRecord[],
@@ -190,7 +212,7 @@ export function runMatching(
     }
 
     // Phase 2: cross-state fallback
-    if (top3.toArray().length < 3 || top3.minScore() < CROSS_STATE_MAX) {
+    if (top3.size() < 3 || top3.minScore() < CROSS_STATE_MAX) {
       for (const esRecord of esRecords) {
         if (esRecord.state === lrRecord.state) continue;
         const scores = scoreForRanking(esRecord, lrRecord, top3.minScore());

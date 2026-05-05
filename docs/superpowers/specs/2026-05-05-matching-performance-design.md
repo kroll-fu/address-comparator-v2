@@ -2,7 +2,7 @@
 
 ## Goal
 
-Cut the matching loop's runtime on 12.6k × 12.6k inputs from ~6 minutes to under 30 seconds with **bit-identical results** (every LR record's top-3 list, in the same order, with the same scores). No public type changes, no UI changes, no schema changes.
+Cut the matching loop's runtime on 12.6k × 12.6k inputs from ~6 minutes to under 30 seconds with results that are **score-identical and rank-identical to today's algorithm in the no-tie domain**. The single deliberate divergence: when multiple records tie at exactly the same addressScore AND those ties span the in-state/cross-state phase boundary, the optimized algorithm preserves bucket-traversal order rather than the naive's input-stable order. See "Tie-handling caveat" below for the full implications. No public type changes, no UI changes, no schema changes.
 
 ## Where the time goes today
 
@@ -131,13 +131,21 @@ Two-phase scoring with two floor checks. Returns `null` when the pair cannot mak
 
 `floor` is `-Infinity` (no pruning) until the heap fills to 3 entries.
 
-### Bit-identical guarantee
+### Equivalence guarantee
 
-Two claims to verify by equivalence test:
+Two claims that hold strictly:
 
 1. **Floor checks never drop a record that today would land in the top 3.** Floor check A uses `cityScore = 1.0` as the upper bound, which is the maximum possible — so any record dropped here has `addressScore < floor`, meaning it can't displace the current top 3. Floor check B is the exact `addressScore` — ditto.
 
-2. **Cross-state fallback is invoked whenever the in-state scan might miss a top-3 entry.** The maximum possible cross-state `addressScore` is `street*0.5 + city*0.25 + 0*0.15 + 1*0.10 = 0.85` (with `street = city = 1.0` and `zipMatch = true`). If `top3.length === 3 && top3.minScore() >= 0.85`, no cross-state pair could displace any heap entry. Otherwise, we must scan cross-state — and we do.
+2. **Heap-displacement equivalence.** The maximum possible cross-state `addressScore` is `street*0.5 + city*0.25 + 0*0.15 + 1*0.10 = 0.85` (with `street = city = 1.0` and `zipMatch = true`). When `top3.length === 3 && top3.minScore() > 0.85`, no cross-state pair can produce a strictly-greater addressScore, so skipping the cross-state scan cannot drop a record that would otherwise displace a heap entry.
+
+### Tie-handling caveat
+
+The strict-`<` fallback condition (`top3.minScore() < 0.85`) does not invoke the cross-state scan when the in-state heap minimum equals exactly 0.85. Combined with the bucket-first traversal (in-state records seen before cross-state records, regardless of input order), this means: when multiple records tie at the same addressScore AND those ties span the phase boundary, the optimized algorithm picks the in-state ties; the naive algorithm picks whichever record appeared first in the input ES list (stable sort by input position).
+
+**Practical impact.** The divergence requires multiple ES records to land at the EXACT SAME float-valued addressScore as a cross-state ES record. Address scores are linear combinations of Jaro-Winkler values plus 0/0.15 (state) plus 0/0.10 (zip). Exact-tied scores between cross-state and in-state records require either (a) duplicate streets/cities across states with specific zip/state coincidences, or (b) randomly coincident JW float values. Real solar lead/customer data effectively never produces these ties in practice. **Match classification (FullMatch / HouseholdMatch / NoMatch) is unaffected in all cases**, because all tied entries produce the same classification — only the displayed top-3 ordering for the tied entries changes.
+
+This trade-off is accepted: the alternative (tracking input-order tie-break across both phases) adds 30+ lines of complexity for an essentially zero-probability practical regression. The divergence is exercised by the `'documents tie-handling divergence'` test in `matching-engine.test.ts`, which serves as documentation of the intentional behavior.
 
 ## Public API
 

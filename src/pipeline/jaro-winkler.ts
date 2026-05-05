@@ -28,6 +28,14 @@ export function jaroWinkler(s1: string, s2: string): number {
   return Math.min(1, Math.max(0, winkler));
 }
 
+// Module-scoped workspaces shared by all calls into jaroSimilarity in this
+// module instance. Safe today because matching runs in a single web worker
+// (WorkflowContext terminates any prior worker before launching a new one)
+// and JS is single-threaded — no concurrent reentry possible. If anyone ever
+// parallelises matching across multiple workers in the same process, each
+// worker gets its own module instance and these stay isolated. But do NOT
+// invoke jaroWinkler concurrently within one execution context (e.g. from
+// async tasks sharing this module) — the workspaces will collide silently.
 const JW_MAX_LEN = 256;
 const s1WorkspaceFixed = new Uint8Array(JW_MAX_LEN);
 const s2WorkspaceFixed = new Uint8Array(JW_MAX_LEN);
