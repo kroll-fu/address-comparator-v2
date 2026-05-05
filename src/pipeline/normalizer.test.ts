@@ -174,6 +174,73 @@ describe('normalizeRecord', () => {
     expect(result.installer).toBe('SunRun Solar');
   });
 
+  it('passes Submitted Date through as a raw trimmed string', () => {
+    const rawFields = {
+      'First Name': 'John',
+      'Last Name': 'Smith',
+      'Street Address': '123 Main St',
+      'City': 'Westport',
+      'State': 'CT',
+      'Zip Code': '06880',
+      'Submitted Date': '  2025-01-15  ',
+    };
+    const mapping = {
+      firstName: 'First Name',
+      lastName: 'Last Name',
+      street: 'Street Address',
+      city: 'City',
+      state: 'State',
+      zip: 'Zip Code',
+      submittedDate: 'Submitted Date',
+    };
+    const result = normalizeRecord(rawFields, mapping, 0);
+    expect(result.submittedDate).toBe('2025-01-15');
+  });
+
+  it('omits submittedDate when not mapped', () => {
+    const rawFields = {
+      'First Name': 'John',
+      'Last Name': 'Smith',
+      'Street Address': '123 Main St',
+      'City': 'Westport',
+      'State': 'CT',
+      'Zip Code': '06880',
+    };
+    const mapping = {
+      firstName: 'First Name',
+      lastName: 'Last Name',
+      street: 'Street Address',
+      city: 'City',
+      state: 'State',
+      zip: 'Zip Code',
+    };
+    const result = normalizeRecord(rawFields, mapping, 0);
+    expect(result.submittedDate).toBeUndefined();
+  });
+
+  it('treats empty Submitted Date as undefined', () => {
+    const rawFields = {
+      'First Name': 'John',
+      'Last Name': 'Smith',
+      'Street Address': '123 Main St',
+      'City': 'Westport',
+      'State': 'CT',
+      'Zip Code': '06880',
+      'Submitted Date': '   ',
+    };
+    const mapping = {
+      firstName: 'First Name',
+      lastName: 'Last Name',
+      street: 'Street Address',
+      city: 'City',
+      state: 'State',
+      zip: 'Zip Code',
+      submittedDate: 'Submitted Date',
+    };
+    const result = normalizeRecord(rawFields, mapping, 0);
+    expect(result.submittedDate).toBeUndefined();
+  });
+
   it('normalizes a record with fullName column', () => {
     const rawFields = {
       'Customer': 'Abu Daniel',

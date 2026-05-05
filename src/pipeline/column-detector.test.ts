@@ -54,14 +54,6 @@ describe('detectColumns', () => {
     expect(mapping.installer).toBe('Installer');
   });
 
-  it('detects company name as company field', () => {
-    const headers = ['Name', 'Address', 'City', 'State', 'Zip', 'Company Name'];
-    const mapping = detectColumns(headers);
-
-    expect(mapping.company).toBe('Company Name');
-    expect(mapping.installer).toBeUndefined();
-  });
-
   it('detects verbose LightReach headers', () => {
     const headers = [
       'Finco Account ID',
@@ -92,8 +84,33 @@ describe('detectColumns', () => {
     expect(mapping.email).toBe('Primary Applicant Email');
     expect(mapping.customerId).toBe('Finco Account ID');
     expect(mapping.installer).toBe('Licensed Organization Name');
-    expect(mapping.company).toBe('Organization Name');
     expect(mapping.fullName).toBeUndefined(); // firstName+lastName preferred
+  });
+
+  it('detects "Submitted Date" exactly', () => {
+    const headers = ['First Name', 'Last Name', 'Street', 'City', 'State', 'Zip', 'Submitted Date'];
+    const mapping = detectColumns(headers);
+    expect(mapping.submittedDate).toBe('Submitted Date');
+  });
+
+  it('detects underscore/dash variants of submitted date', () => {
+    expect(detectColumns(['submitted_date']).submittedDate).toBe('submitted_date');
+    expect(detectColumns(['Submission Date']).submittedDate).toBe('Submission Date');
+  });
+
+  it('detects "Lead Creation Date" and "Lead Created Date" as submittedDate', () => {
+    expect(detectColumns(['Lead Creation Date']).submittedDate).toBe('Lead Creation Date');
+    expect(detectColumns(['Lead Created Date']).submittedDate).toBe('Lead Created Date');
+  });
+
+  it('falls back to broad "...date" pattern when no specific match exists', () => {
+    expect(detectColumns(['Modified Date']).submittedDate).toBe('Modified Date');
+  });
+
+  it('prefers "Submitted Date" over a broad-pattern "...date" sibling', () => {
+    const headers = ['Submitted Date', 'Modified Date'];
+    const mapping = detectColumns(headers);
+    expect(mapping.submittedDate).toBe('Submitted Date');
   });
 
   it('handles headers with no matches', () => {

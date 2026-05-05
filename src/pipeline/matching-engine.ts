@@ -3,7 +3,7 @@ import { jaroWinkler } from './jaro-winkler';
 
 /**
  * Score a single ES record against a single LR record.
- * Returns independent address, name, email, and company scores.
+ * Returns independent address, name, email, and installer scores.
  * Address score weighted: street 50%, city 25%, state exact 15%, zip exact 10%.
  */
 export function scoreRecord(esRecord: NormalizedRecord, lrRecord: NormalizedRecord): MatchScores {
@@ -25,14 +25,18 @@ export function scoreRecord(esRecord: NormalizedRecord, lrRecord: NormalizedReco
   const lrEmail = lrRecord.email ?? '';
   const emailScore = (esEmail && lrEmail && esEmail === lrEmail) ? 1.0 : 0;
 
-  // Company score: Jaro-Winkler on company names (informational only)
-  const companyScore = jaroWinkler(esRecord.company ?? '', lrRecord.company ?? '');
+  // Installer score: Jaro-Winkler on installer / licensed-organization names.
+  // Returns 0 when either side is empty (avoids the JW('','') === 1 false-perfect-match).
+  const installerScore =
+    (esRecord.installer && lrRecord.installer)
+      ? jaroWinkler(esRecord.installer.toLowerCase(), lrRecord.installer.toLowerCase())
+      : 0;
 
   return {
     addressScore,
     nameScore,
     emailScore,
-    companyScore,
+    installerScore,
     streetScore,
     cityScore,
     stateMatch,

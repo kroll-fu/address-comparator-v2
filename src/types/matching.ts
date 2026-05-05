@@ -14,8 +14,8 @@ export interface NormalizedRecord {
   installer: string;           // Installer company name (ES data only, empty for LR)
   // Optional fields
   email?: string;              // Normalized email (lowercase, trimmed)
-  company?: string;            // Company name (trimmed, display only)
   customerId?: string;         // Customer/account ID for grouping LR multi-address records
+  submittedDate?: string;      // Raw passthrough, no parsing
   rawData?: Record<string, string>; // All raw fields for extra-column passthrough
 }
 
@@ -24,7 +24,7 @@ export interface MatchScores {
   addressScore: number;       // 0-1, weighted Jaro-Winkler
   nameScore: number;          // 0-1, Jaro-Winkler on full names
   emailScore: number;         // 0 or 1, exact match (case-insensitive)
-  companyScore: number;       // 0-1, Jaro-Winkler on company names (display only)
+  installerScore: number;     // 0-1, Jaro-Winkler on installer/licensed-org names (display only)
   // Component scores for debugging/display
   streetScore: number;        // 0-1
   cityScore: number;          // 0-1

@@ -24,7 +24,7 @@ function makeScores(overrides: Partial<MatchScores> = {}): MatchScores {
     addressScore: 0.90,
     nameScore: 0.85,
     emailScore: 0,
-    companyScore: 0,
+    installerScore: 0,
     streetScore: 0.95,
     cityScore: 0.90,
     stateMatch: true,
@@ -69,7 +69,8 @@ describe('exportMatchesToCSV', () => {
     expect(headers).toContain('Match Type');
     expect(headers).toContain('Address Score');
     expect(headers).toContain('Email Score');
-    expect(headers).toContain('Company Score');
+    expect(headers).toContain('Installer Score');
+    expect(headers).toContain('LR Installer');
     expect(headers).not.toContain('Last Name Match');
   });
 
@@ -116,6 +117,40 @@ describe('exportMatchesToCSV', () => {
     const csv = exportMatchesToCSV([result], thresholds);
     expect(csv).toContain('SunRun Solar');
   });
+
+  it('includes ES Submitted Date column header', () => {
+    const csv = exportMatchesToCSV([], thresholds);
+    const headers = csv.split('\n')[0];
+    expect(headers).toContain('ES Submitted Date');
+  });
+
+  it('emits the ES submittedDate value in the export row', () => {
+    const result: LRCustomerResult = {
+      lrRecord: makeRecord(),
+      topMatches: [{
+        esRecord: makeRecord({ submittedDate: '2025-01-15' }),
+        scores: makeScores({ addressScore: 0.90, nameScore: 0.85 }),
+      }],
+    };
+    const csv = exportMatchesToCSV([result], thresholds);
+    expect(csv).toContain('2025-01-15');
+  });
+
+  it('emits an empty cell when ES submittedDate is missing on a matched row', () => {
+    const result: LRCustomerResult = {
+      lrRecord: makeRecord(),
+      topMatches: [{
+        esRecord: makeRecord(),
+        scores: makeScores({ addressScore: 0.90, nameScore: 0.85 }),
+      }],
+    };
+    const csv = exportMatchesToCSV([result], thresholds);
+    const dataLine = csv.split('\n')[1];
+    // The line should still parse: same comma count as the header
+    const headerCommas = csv.split('\n')[0].split(',').length;
+    const dataCommas = dataLine.split(',').length;
+    expect(dataCommas).toBe(headerCommas);
+  });
 });
 
 describe('exportAllToCSV', () => {
@@ -139,6 +174,18 @@ describe('exportAllToCSV', () => {
     const lines = csv.split('\n');
     expect(lines).toHaveLength(2); // Header + 1 data row
     expect(csv).toContain('No Match');
+  });
+
+  it('no-topMatch row has the same column count as the header', () => {
+    // Guards the hardcoded ES placeholder block in buildCSVRow's no-topMatch branch
+    // against drift if a future column is added.
+    const emptyResult: LRCustomerResult = {
+      lrRecord: makeRecord(),
+      topMatches: [],
+    };
+    const csv = exportAllToCSV([emptyResult], thresholds);
+    const [headerLine, dataLine] = csv.split('\n');
+    expect(dataLine.split(',').length).toBe(headerLine.split(',').length);
   });
 
   it('produces parseable CSV without unescaped commas in data', () => {

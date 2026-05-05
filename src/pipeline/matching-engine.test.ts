@@ -136,6 +136,29 @@ describe('runMatching', () => {
     expect(results[1].topMatches[0].esRecord.street).toBe('200 second avenue');
   });
 
+  it('returns 1.0 installerScore when ES and LR installers match exactly (case-insensitive)', () => {
+    const es = makeRecord({ installer: 'SunRun Solar' });
+    const lr = makeRecord({ installer: 'sunrun solar' });
+    const scores = scoreRecord(es, lr);
+    expect(scores.installerScore).toBeCloseTo(1.0, 2);
+  });
+
+  it('returns a Jaro-Winkler score between 0 and 1 for similar but non-identical installers', () => {
+    const es = makeRecord({ installer: 'SunRun Solar' });
+    const lr = makeRecord({ installer: 'SunRun Solar Inc' });
+    const scores = scoreRecord(es, lr);
+    expect(scores.installerScore).toBeGreaterThan(0.8);
+    expect(scores.installerScore).toBeLessThan(1.0);
+  });
+
+  it('returns 0 installerScore when either side is empty', () => {
+    const esEmpty = makeRecord({ installer: '' });
+    const lrFull = makeRecord({ installer: 'SunRun Solar' });
+    expect(scoreRecord(esEmpty, lrFull).installerScore).toBe(0);
+    expect(scoreRecord(lrFull, esEmpty).installerScore).toBe(0);
+    expect(scoreRecord(esEmpty, esEmpty).installerScore).toBe(0);
+  });
+
   it('completes 2000 ES x 200 LR matching in under 5 seconds', () => {
     const esRecords: NormalizedRecord[] = Array.from({ length: 2000 }, (_, i) =>
       makeRecord({

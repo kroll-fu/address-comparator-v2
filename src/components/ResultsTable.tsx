@@ -247,8 +247,8 @@ export default function ResultsTable({ results, thresholds, filterType, installe
         <td style={{ ...tdStyle, color: top.scores.emailScore >= 1 ? 'var(--es-green)' : 'var(--es-gray400)', fontWeight: 500, ...groupBorderStyle }}>
           {formatPercent(top.scores.emailScore)}
         </td>
-        <td style={{ ...tdStyle, color: scoreColor(top.scores.companyScore), fontWeight: 500, ...groupBorderStyle }}>
-          {formatPercent(top.scores.companyScore)}
+        <td style={{ ...tdStyle, color: scoreColor(top.scores.installerScore), fontWeight: 500, ...groupBorderStyle }}>
+          {formatPercent(top.scores.installerScore)}
         </td>
         {!isAlternative ? (
           <>
@@ -263,6 +263,7 @@ export default function ResultsTable({ results, thresholds, filterType, installe
         )}
         <td style={{ ...tdStyle, ...groupBorderStyle }}>{top.esRecord.rawName}</td>
         <td style={{ ...tdStyle, ...groupBorderStyle }}>{top.esRecord.rawAddress}</td>
+        <td style={{ ...tdStyle, ...groupBorderStyle }}>{top.esRecord.submittedDate ?? ''}</td>
         <td style={{ ...tdStyle, ...groupBorderStyle }}>
           {!isAlternative && result.topMatches.length > 1 && (
             <button
@@ -321,11 +322,12 @@ export default function ResultsTable({ results, thresholds, filterType, installe
                 <th style={thStyle} onClick={() => handleSort('addressScore')}>Addr %{renderSortArrow('addressScore')}</th>
                 <th style={thStyle} onClick={() => handleSort('nameScore')}>Name %{renderSortArrow('nameScore')}</th>
                 <th style={thStyle} onClick={() => handleSort('emailScore')}>Email %{renderSortArrow('emailScore')}</th>
-                <th style={{ ...thStyle, cursor: 'default' }}>Company %</th>
+                <th style={{ ...thStyle, cursor: 'default' }}>Installer %</th>
                 <th style={thStyle} onClick={() => handleSort('lrName')}>LR Name{renderSortArrow('lrName')}</th>
                 <th style={thStyle} onClick={() => handleSort('lrAddress')}>LR Address{renderSortArrow('lrAddress')}</th>
                 <th style={thStyle} onClick={() => handleSort('esName')}>ES Name{renderSortArrow('esName')}</th>
                 <th style={thStyle} onClick={() => handleSort('esAddress')}>ES Address{renderSortArrow('esAddress')}</th>
+                <th style={{ ...thStyle, cursor: 'default' }}>ES Submitted</th>
                 <th style={{ ...thStyle, cursor: 'default' }}></th>
               </tr>
             </thead>

@@ -8,8 +8,8 @@ export interface ColumnMapping {
   zip?: string;
   installer?: string;
   email?: string;
-  company?: string;
   customerId?: string;
+  submittedDate?: string;
 }
 
 interface PatternEntry {
@@ -62,18 +62,18 @@ const PATTERNS: PatternEntry[] = [
   { field: 'email', pattern: /^email$/i, priority: 1 },
   { field: 'email', pattern: /^email[_\s-]?address$/i, priority: 2 },
   { field: 'email', pattern: /email$/i, priority: 4 },
-  // Company patterns — also match "Organization Name"
-  { field: 'company', pattern: /^company$/i, priority: 1 },
-  { field: 'company', pattern: /^company[_\s-]?name$/i, priority: 2 },
-  { field: 'company', pattern: /^organization$/i, priority: 3 },
-  { field: 'company', pattern: /^organization[_\s-]?name$/i, priority: 4 },
-  { field: 'company', pattern: /organization[_\s-]?name$/i, priority: 5 },
   // Customer ID patterns — also match "Finco Account ID"
   { field: 'customerId', pattern: /^(customer[_\s-]?)?id$/i, priority: 1 },
   { field: 'customerId', pattern: /^finco[_\s-]?id$/i, priority: 2 },
   { field: 'customerId', pattern: /^account[_\s-]?id$/i, priority: 3 },
   { field: 'customerId', pattern: /finco[_\s-]?account[_\s-]?id$/i, priority: 4 },
   { field: 'customerId', pattern: /account[_\s-]?id$/i, priority: 5 },
+  // Submitted date — ES "Submitted Date" carries lead creation timestamps
+  { field: 'submittedDate', pattern: /^submitted[_\s-]?date$/i, priority: 1 },
+  { field: 'submittedDate', pattern: /^submission[_\s-]?date$/i, priority: 2 },
+  { field: 'submittedDate', pattern: /^lead[_\s-]?(creation|created)[_\s-]?date$/i, priority: 3 },
+  { field: 'submittedDate', pattern: /^date[_\s-]?(submitted|created)$/i, priority: 4 },
+  { field: 'submittedDate', pattern: /date$/i, priority: 8 }, // broad fallback
 ];
 
 /**
@@ -105,7 +105,7 @@ export function detectColumns(headers: string[]): ColumnMapping {
   // Assign fields, avoiding duplicate header usage
   const fieldsToAssign: (keyof ColumnMapping)[] = [
     'firstName', 'lastName', 'street', 'city', 'state', 'zip', 'installer',
-    'email', 'company', 'customerId',
+    'email', 'customerId', 'submittedDate',
   ];
 
   // Only assign fullName if firstName+lastName were not both found
