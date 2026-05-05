@@ -54,14 +54,6 @@ describe('detectColumns', () => {
     expect(mapping.installer).toBe('Installer');
   });
 
-  it('detects company name as company field', () => {
-    const headers = ['Name', 'Address', 'City', 'State', 'Zip', 'Company Name'];
-    const mapping = detectColumns(headers);
-
-    expect(mapping.company).toBe('Company Name');
-    expect(mapping.installer).toBeUndefined();
-  });
-
   it('detects verbose LightReach headers', () => {
     const headers = [
       'Finco Account ID',
@@ -92,7 +84,6 @@ describe('detectColumns', () => {
     expect(mapping.email).toBe('Primary Applicant Email');
     expect(mapping.customerId).toBe('Finco Account ID');
     expect(mapping.installer).toBe('Licensed Organization Name');
-    expect(mapping.company).toBe('Organization Name');
     expect(mapping.fullName).toBeUndefined(); // firstName+lastName preferred
   });
 

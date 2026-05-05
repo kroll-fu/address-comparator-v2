@@ -15,7 +15,7 @@ interface FieldDef {
   label: string;
 }
 
-const OPTIONAL_FIELDS = new Set<MappingField>(['installer', 'email', 'company', 'customerId', 'submittedDate']);
+const OPTIONAL_FIELDS = new Set<MappingField>(['installer', 'email', 'customerId', 'submittedDate']);
 
 const ALL_FIELDS: FieldDef[] = [
   { key: 'firstName', label: 'First Name' },
@@ -27,7 +27,6 @@ const ALL_FIELDS: FieldDef[] = [
   { key: 'zip', label: 'Zip' },
   { key: 'installer', label: 'Installer' },
   { key: 'email', label: 'Email' },
-  { key: 'company', label: 'Company Name' },
   { key: 'customerId', label: 'Customer ID' },
   { key: 'submittedDate', label: 'Submitted Date' },
 ];

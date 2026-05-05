@@ -14,7 +14,6 @@ export interface NormalizedRecord {
   installer: string;           // Installer company name (ES data only, empty for LR)
   // Optional fields
   email?: string;              // Normalized email (lowercase, trimmed)
-  company?: string;            // Company name (trimmed, display only)
   customerId?: string;         // Customer/account ID for grouping LR multi-address records
   submittedDate?: string;      // Raw passthrough, no parsing
   rawData?: Record<string, string>; // All raw fields for extra-column passthrough
