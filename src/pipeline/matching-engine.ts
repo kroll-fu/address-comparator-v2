@@ -182,9 +182,12 @@ export interface RunMatchingOptions {
  * same addressScore AND those ties span the in-state/cross-state phase
  * boundary. In that case the optimized algorithm preserves the bucket-traversal
  * order rather than the naive's input-stable order. Practical impact: requires
- * duplicate exact-tied addresses across states; classification (FullMatch /
- * HouseholdMatch / NoMatch) is unaffected. See the
- * "documented tie-handling divergence" tests in matching-engine.test.ts.
+ * duplicate exact-tied addresses across states. The NoMatch boundary is
+ * unaffected (all tied entries share the same addressScore); the FullMatch
+ * vs HouseholdMatch distinction CAN differ when tied entries have differing
+ * name/email scores that straddle their thresholds, and the CSV-exported
+ * top-1 esRecord can differ. See the "documents tie-handling divergence"
+ * test in matching-engine.test.ts and the spec's "Tie-handling caveat".
  */
 export function runMatching(
   esRecords: NormalizedRecord[],
