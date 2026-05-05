@@ -197,6 +197,64 @@ describe('runMatching', () => {
     // Log for visibility
     console.log(`2000x200 matching completed in ${elapsed.toFixed(0)}ms`);
   });
+
+  it('handles LR record with empty state by scanning all ES records', () => {
+    const es = [
+      makeRecord({ sourceRow: 0, state: 'CT', street: '123 main street' }),
+      makeRecord({ sourceRow: 1, state: 'NY', street: '123 main street' }),
+      makeRecord({ sourceRow: 2, state: 'NJ', street: '999 oak avenue' }),
+    ];
+    const lr = [makeRecord({ sourceRow: 0, state: '', street: '123 main street' })];
+    const results = runMatching(es, lr);
+    expect(results).toHaveLength(1);
+    expect(results[0].topMatches).toHaveLength(3);
+    // Top 2 should be the perfect-street matches (rank order can be either CT or NY first)
+    expect(results[0].topMatches[0].scores.streetScore).toBeCloseTo(1.0, 2);
+    expect(results[0].topMatches[1].scores.streetScore).toBeCloseTo(1.0, 2);
+  });
+
+  it('returns top-3 from cross-state fallback when LR state has zero ES records', () => {
+    const es = [
+      makeRecord({ sourceRow: 0, state: 'NY', street: '123 main street' }),
+      makeRecord({ sourceRow: 1, state: 'NJ', street: '125 main street' }),
+      makeRecord({ sourceRow: 2, state: 'MA', street: '127 main street' }),
+    ];
+    const lr = [makeRecord({ sourceRow: 0, state: 'CT', street: '123 main street' })];
+    const results = runMatching(es, lr);
+    expect(results[0].topMatches).toHaveLength(3);
+    expect(results[0].topMatches[0].esRecord.state).toBe('NY'); // perfect street match
+  });
+
+  it('combines in-state and cross-state matches when in-state bucket is undersized', () => {
+    const es = [
+      makeRecord({ sourceRow: 0, state: 'CT', street: '123 main street' }),       // in-state perfect
+      makeRecord({ sourceRow: 1, state: 'NY', street: '123 main street' }),       // cross-state perfect
+      makeRecord({ sourceRow: 2, state: 'NJ', street: '125 main street' }),       // cross-state close
+    ];
+    const lr = [makeRecord({ sourceRow: 0, state: 'CT', street: '123 main street' })];
+    const results = runMatching(es, lr);
+    expect(results[0].topMatches).toHaveLength(3);
+    // In-state CT wins (state=match adds 0.15)
+    expect(results[0].topMatches[0].esRecord.state).toBe('CT');
+    expect(results[0].topMatches[0].scores.stateMatch).toBe(true);
+  });
+
+  it('returns shorter top-3 when fewer than 3 ES records exist', () => {
+    const es = [
+      makeRecord({ sourceRow: 0, state: 'CT', street: '123 main street' }),
+      makeRecord({ sourceRow: 1, state: 'CT', street: '125 main street' }),
+    ];
+    const lr = [makeRecord({ sourceRow: 0, state: 'CT', street: '123 main street' })];
+    const results = runMatching(es, lr);
+    expect(results[0].topMatches).toHaveLength(2);
+  });
+
+  it('returns empty top-3 when ES is empty', () => {
+    const es: NormalizedRecord[] = [];
+    const lr = [makeRecord({ sourceRow: 0, state: 'CT' })];
+    const results = runMatching(es, lr);
+    expect(results[0].topMatches).toHaveLength(0);
+  });
 });
 
 // Inline byte-for-byte copy of the matching algorithm AS OF this commit.
