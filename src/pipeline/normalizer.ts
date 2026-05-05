@@ -114,6 +114,9 @@ export function normalizeRecord(
   const email = columnMapping.email ? (rawFields[columnMapping.email] ?? '').trim().toLowerCase() : undefined;
   const company = columnMapping.company ? (rawFields[columnMapping.company] ?? '').trim() || undefined : undefined;
   const customerId = columnMapping.customerId ? (rawFields[columnMapping.customerId] ?? '').trim() || undefined : undefined;
+  const submittedDate = columnMapping.submittedDate
+    ? (rawFields[columnMapping.submittedDate] ?? '').trim() || undefined
+    : undefined;
 
   return {
     sourceRow,
@@ -130,6 +133,7 @@ export function normalizeRecord(
     ...(email !== undefined && { email }),
     ...(company !== undefined && { company }),
     ...(customerId !== undefined && { customerId }),
+    ...(submittedDate !== undefined && { submittedDate }),
     rawData: rawFields,
   };
 }
