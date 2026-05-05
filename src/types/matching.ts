@@ -25,7 +25,7 @@ export interface MatchScores {
   addressScore: number;       // 0-1, weighted Jaro-Winkler
   nameScore: number;          // 0-1, Jaro-Winkler on full names
   emailScore: number;         // 0 or 1, exact match (case-insensitive)
-  companyScore: number;       // 0-1, Jaro-Winkler on company names (display only)
+  installerScore: number;     // 0-1, Jaro-Winkler on installer/licensed-org names (display only)
   // Component scores for debugging/display
   streetScore: number;        // 0-1
   cityScore: number;          // 0-1

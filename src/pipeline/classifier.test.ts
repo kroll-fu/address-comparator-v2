@@ -8,7 +8,7 @@ function makeScores(overrides: Partial<MatchScores>): MatchScores {
     addressScore: 0.90,
     nameScore: 0.85,
     emailScore: 0,
-    companyScore: 0,
+    installerScore: 0,
     streetScore: 0.95,
     cityScore: 0.90,
     stateMatch: true,

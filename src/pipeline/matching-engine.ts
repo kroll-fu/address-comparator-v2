@@ -25,14 +25,18 @@ export function scoreRecord(esRecord: NormalizedRecord, lrRecord: NormalizedReco
   const lrEmail = lrRecord.email ?? '';
   const emailScore = (esEmail && lrEmail && esEmail === lrEmail) ? 1.0 : 0;
 
-  // Company score: Jaro-Winkler on company names (informational only)
-  const companyScore = jaroWinkler(esRecord.company ?? '', lrRecord.company ?? '');
+  // Installer score: Jaro-Winkler on installer / licensed-organization names.
+  // Returns 0 when either side is empty (avoids the JW('','') === 1 false-perfect-match).
+  const installerScore =
+    (esRecord.installer && lrRecord.installer)
+      ? jaroWinkler(esRecord.installer.toLowerCase(), lrRecord.installer.toLowerCase())
+      : 0;
 
   return {
     addressScore,
     nameScore,
     emailScore,
-    companyScore,
+    installerScore,
     streetScore,
     cityScore,
     stateMatch,

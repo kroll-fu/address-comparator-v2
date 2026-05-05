@@ -24,7 +24,7 @@ function makeScores(overrides: Partial<MatchScores> = {}): MatchScores {
     addressScore: 0.90,
     nameScore: 0.85,
     emailScore: 0,
-    companyScore: 0,
+    installerScore: 0,
     streetScore: 0.95,
     cityScore: 0.90,
     stateMatch: true,
@@ -69,7 +69,8 @@ describe('exportMatchesToCSV', () => {
     expect(headers).toContain('Match Type');
     expect(headers).toContain('Address Score');
     expect(headers).toContain('Email Score');
-    expect(headers).toContain('Company Score');
+    expect(headers).toContain('Installer Score');
+    expect(headers).toContain('LR Installer');
     expect(headers).not.toContain('Last Name Match');
   });
 
