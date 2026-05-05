@@ -137,6 +137,24 @@ function scoreForRanking(
 }
 
 /**
+ * Group ES records by NormalizedRecord.state. Empty-state records live
+ * in the "" bucket. The normalizer guarantees state is either a 2-letter
+ * uppercase abbreviation or "" (see normalizer.ts).
+ */
+function bucketByState(records: NormalizedRecord[]): Map<string, NormalizedRecord[]> {
+  const map = new Map<string, NormalizedRecord[]>();
+  for (const record of records) {
+    const bucket = map.get(record.state);
+    if (bucket) {
+      bucket.push(record);
+    } else {
+      map.set(record.state, [record]);
+    }
+  }
+  return map;
+}
+
+/**
  * Run matching: for each LR record, score against ALL ES records,
  * keep top 3 ranked by addressScore descending.
  */
@@ -144,16 +162,36 @@ export function runMatching(
   esRecords: NormalizedRecord[],
   lrRecords: NormalizedRecord[],
 ): LRCustomerResult[] {
+  // Maximum cross-state addressScore: street*0.5 + city*0.25 + 0*0.15 + zip*0.10 = 0.85.
+  // If top3.minScore() >= 0.85 with 3 entries, no cross-state pair can displace any of them.
+  const CROSS_STATE_MAX = 0.85;
+
+  const buckets = bucketByState(esRecords);
   const results: LRCustomerResult[] = [];
 
   for (const lrRecord of lrRecords) {
     const top3 = new Top3();
-    for (const esRecord of esRecords) {
+
+    // Phase 1: in-state scan
+    const inState = buckets.get(lrRecord.state) ?? [];
+    for (const esRecord of inState) {
       const scores = scoreForRanking(esRecord, lrRecord, top3.minScore());
       if (scores !== null) {
         top3.tryInsert({ esRecord, scores });
       }
     }
+
+    // Phase 2: cross-state fallback — only when an out-of-state pair could plausibly displace a heap entry
+    if (top3.toArray().length < 3 || top3.minScore() < CROSS_STATE_MAX) {
+      for (const esRecord of esRecords) {
+        if (esRecord.state === lrRecord.state) continue; // already scanned in Phase 1
+        const scores = scoreForRanking(esRecord, lrRecord, top3.minScore());
+        if (scores !== null) {
+          top3.tryInsert({ esRecord, scores });
+        }
+      }
+    }
+
     results.push({ lrRecord, topMatches: top3.toArray() });
   }
 
