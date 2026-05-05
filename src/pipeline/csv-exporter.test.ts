@@ -116,6 +116,40 @@ describe('exportMatchesToCSV', () => {
     const csv = exportMatchesToCSV([result], thresholds);
     expect(csv).toContain('SunRun Solar');
   });
+
+  it('includes ES Submitted Date column header', () => {
+    const csv = exportMatchesToCSV([], thresholds);
+    const headers = csv.split('\n')[0];
+    expect(headers).toContain('ES Submitted Date');
+  });
+
+  it('emits the ES submittedDate value in the export row', () => {
+    const result: LRCustomerResult = {
+      lrRecord: makeRecord(),
+      topMatches: [{
+        esRecord: makeRecord({ submittedDate: '2025-01-15' }),
+        scores: makeScores({ addressScore: 0.90, nameScore: 0.85 }),
+      }],
+    };
+    const csv = exportMatchesToCSV([result], thresholds);
+    expect(csv).toContain('2025-01-15');
+  });
+
+  it('emits an empty cell when ES submittedDate is missing', () => {
+    const result: LRCustomerResult = {
+      lrRecord: makeRecord(),
+      topMatches: [{
+        esRecord: makeRecord(),
+        scores: makeScores({ addressScore: 0.90, nameScore: 0.85 }),
+      }],
+    };
+    const csv = exportMatchesToCSV([result], thresholds);
+    const dataLine = csv.split('\n')[1];
+    // The line should still parse: same comma count as the header
+    const headerCommas = csv.split('\n')[0].split(',').length;
+    const dataCommas = dataLine.split(',').length;
+    expect(dataCommas).toBe(headerCommas);
+  });
 });
 
 describe('exportAllToCSV', () => {

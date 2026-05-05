@@ -43,6 +43,7 @@ function buildCSVHeaders(lrExtraHeaders: string[]): string[] {
     'ES_State',
     'ES_Zip',
     'ES_Installer',
+    'ES Submitted Date',
     ...lrExtraHeaders,
   ];
 }
@@ -70,7 +71,7 @@ function buildCSVRow(result: LRCustomerResult, thresholds: MatchThresholds, lrEx
       lr.city,
       lr.state,
       lr.zip,
-      '', '', '', '', '', '', '',
+      '', '', '', '', '', '', '', '',
       ...extraValues,
     ];
   }
@@ -99,6 +100,7 @@ function buildCSVRow(result: LRCustomerResult, thresholds: MatchThresholds, lrEx
     topMatch.esRecord.state,
     topMatch.esRecord.zip,
     topMatch.esRecord.installer,
+    topMatch.esRecord.submittedDate ?? '',
     ...extraValues,
   ];
 }
