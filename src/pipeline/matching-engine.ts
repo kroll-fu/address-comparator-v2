@@ -154,6 +154,12 @@ function bucketByState(records: NormalizedRecord[]): Map<string, NormalizedRecor
   return map;
 }
 
+export interface RunMatchingOptions {
+  onProgress?: (completed: number, total: number) => void;
+  /** How often (in LR records processed) to invoke onProgress. Default 50. */
+  progressInterval?: number;
+}
+
 /**
  * Run matching: for each LR record, score against ALL ES records,
  * keep top 3 ranked by addressScore descending.
@@ -161,15 +167,17 @@ function bucketByState(records: NormalizedRecord[]): Map<string, NormalizedRecor
 export function runMatching(
   esRecords: NormalizedRecord[],
   lrRecords: NormalizedRecord[],
+  options?: RunMatchingOptions,
 ): LRCustomerResult[] {
-  // Maximum cross-state addressScore: street*0.5 + city*0.25 + 0*0.15 + zip*0.10 = 0.85.
-  // If top3.minScore() >= 0.85 with 3 entries, no cross-state pair can displace any of them.
   const CROSS_STATE_MAX = 0.85;
+  const onProgress = options?.onProgress;
+  const progressInterval = options?.progressInterval ?? 50;
 
   const buckets = bucketByState(esRecords);
   const results: LRCustomerResult[] = [];
 
-  for (const lrRecord of lrRecords) {
+  for (let i = 0; i < lrRecords.length; i++) {
+    const lrRecord = lrRecords[i];
     const top3 = new Top3();
 
     // Phase 1: in-state scan
@@ -181,10 +189,10 @@ export function runMatching(
       }
     }
 
-    // Phase 2: cross-state fallback — only when an out-of-state pair could plausibly displace a heap entry
+    // Phase 2: cross-state fallback
     if (top3.toArray().length < 3 || top3.minScore() < CROSS_STATE_MAX) {
       for (const esRecord of esRecords) {
-        if (esRecord.state === lrRecord.state) continue; // already scanned in Phase 1
+        if (esRecord.state === lrRecord.state) continue;
         const scores = scoreForRanking(esRecord, lrRecord, top3.minScore());
         if (scores !== null) {
           top3.tryInsert({ esRecord, scores });
@@ -193,6 +201,10 @@ export function runMatching(
     }
 
     results.push({ lrRecord, topMatches: top3.toArray() });
+
+    if (onProgress && ((i + 1) % progressInterval === 0 || i === lrRecords.length - 1)) {
+      onProgress(i + 1, lrRecords.length);
+    }
   }
 
   return results;
