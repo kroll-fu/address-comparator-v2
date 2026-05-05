@@ -263,6 +263,7 @@ export default function ResultsTable({ results, thresholds, filterType, installe
         )}
         <td style={{ ...tdStyle, ...groupBorderStyle }}>{top.esRecord.rawName}</td>
         <td style={{ ...tdStyle, ...groupBorderStyle }}>{top.esRecord.rawAddress}</td>
+        <td style={{ ...tdStyle, ...groupBorderStyle }}>{top.esRecord.submittedDate ?? ''}</td>
         <td style={{ ...tdStyle, ...groupBorderStyle }}>
           {!isAlternative && result.topMatches.length > 1 && (
             <button
@@ -326,6 +327,7 @@ export default function ResultsTable({ results, thresholds, filterType, installe
                 <th style={thStyle} onClick={() => handleSort('lrAddress')}>LR Address{renderSortArrow('lrAddress')}</th>
                 <th style={thStyle} onClick={() => handleSort('esName')}>ES Name{renderSortArrow('esName')}</th>
                 <th style={thStyle} onClick={() => handleSort('esAddress')}>ES Address{renderSortArrow('esAddress')}</th>
+                <th style={{ ...thStyle, cursor: 'default' }}>ES Submitted</th>
                 <th style={{ ...thStyle, cursor: 'default' }}></th>
               </tr>
             </thead>
