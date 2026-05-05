@@ -136,7 +136,7 @@ describe('exportMatchesToCSV', () => {
     expect(csv).toContain('2025-01-15');
   });
 
-  it('emits an empty cell when ES submittedDate is missing', () => {
+  it('emits an empty cell when ES submittedDate is missing on a matched row', () => {
     const result: LRCustomerResult = {
       lrRecord: makeRecord(),
       topMatches: [{
@@ -174,6 +174,18 @@ describe('exportAllToCSV', () => {
     const lines = csv.split('\n');
     expect(lines).toHaveLength(2); // Header + 1 data row
     expect(csv).toContain('No Match');
+  });
+
+  it('no-topMatch row has the same column count as the header', () => {
+    // Guards the hardcoded ES placeholder block in buildCSVRow's no-topMatch branch
+    // against drift if a future column is added.
+    const emptyResult: LRCustomerResult = {
+      lrRecord: makeRecord(),
+      topMatches: [],
+    };
+    const csv = exportAllToCSV([emptyResult], thresholds);
+    const [headerLine, dataLine] = csv.split('\n');
+    expect(dataLine.split(',').length).toBe(headerLine.split(',').length);
   });
 
   it('produces parseable CSV without unescaped commas in data', () => {
