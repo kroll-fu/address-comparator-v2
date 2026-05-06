@@ -130,17 +130,17 @@ export default function MatchingStep() {
         onFilterChange={setActiveFilter}
         installerFilter={installerFilter}
       />
-      <ResultsTable
-        results={matchingOutput.results}
-        thresholds={thresholds}
-        filterType={activeFilter}
-        installerFilter={installerFilter}
-      />
       <ExportButtons
         results={matchingOutput.results}
         thresholds={thresholds}
         installerFilter={installerFilter}
         lrExtraHeaders={matchingOutput.metadata.lrExtraHeaders}
+      />
+      <ResultsTable
+        results={matchingOutput.results}
+        thresholds={thresholds}
+        filterType={activeFilter}
+        installerFilter={installerFilter}
       />
     </div>
   );
